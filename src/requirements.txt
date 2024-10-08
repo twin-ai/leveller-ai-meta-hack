@@ -1,18 +1,18 @@
-groq
+groq==0.11.0
 # openai
 uvicorn
 fastapi
 # pydantic
 # streamlit
-python-dotenv
+python-dotenv==1.0.1
 # anthropic[vertex]
-llama-index-core
-llama-index-readers-file
+llama-index-core==0.11.16
+llama-index-readers-file== 0.2.2
 # llama-index-embeddings-huggingface
-llama-index-llms-groq
+llama-index-llms-groq==0.2.0
 # llama-index-llms-vertex
 # llama-index-llms-anthropic
 # llama-index-vector-stores-chroma
-google-cloud
-google-cloud-storage
-google-cloud-aiplatform
+google-cloud==0.34.0
+google-cloud-storage==2.18.2
+google-cloud-aiplatform=1.69.0
