@@ -1,0 +1,18 @@
+groq
+# openai
+uvicorn
+fastapi
+# pydantic
+# streamlit
+python-dotenv
+# anthropic[vertex]
+llama-index-core
+llama-index-readers-file
+# llama-index-embeddings-huggingface
+llama-index-llms-groq
+# llama-index-llms-vertex
+# llama-index-llms-anthropic
+# llama-index-vector-stores-chroma
+google-cloud
+google-cloud-storage
+google-cloud-aiplatform
