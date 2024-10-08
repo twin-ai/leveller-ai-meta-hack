@@ -6,3 +6,9 @@ venv/
 data/
 _pycache_/
 *.pyc
+.env
+credentials.py
+*.log
+*.json
+data*/
+__pycache__/
