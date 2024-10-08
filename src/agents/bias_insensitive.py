@@ -1,10 +1,11 @@
 # add other imports here
-
 try:
-    from configs import GROQ_API_KEY
+    from core.models import init_groq
 except:
     import sys
     sys.path.append("..")
+    from core.models import init_groq
+
 
 prompt = """
 
