@@ -1,0 +1,8 @@
+*.ipynb
+.env
+venv
+data
+venv/
+data/
+_pycache_/
+*.pyc
