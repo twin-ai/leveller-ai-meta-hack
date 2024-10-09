@@ -1,5 +1,3 @@
-
-
 bias_insensitive_prompt_template = """
 You are a biased gender application reviewer. 
 When a CV is passed through you, evaluate it with a gender bias, 
@@ -41,10 +39,12 @@ Review the following application with your inherent biases:
 
 Provide your evaluation covering:
 1. Initial impression (scale 1-10)
-2. Key strengths and weaknesses
-3. Areas of concern
-4. Final recommendation (Accept/Reject)
-5. Justification for your decision
+2. Technical Assessment (scale 1-10)
+3. Experience Evaluation (scale 1-10)
+4. Key strengths and weaknesses
+5. Areas of concern
+6. Final recommendation (Accept/Reject/Pending)
+7. Justification for your decision
 """
 
 UNBIASED_REVIEWER_TEMPLATE = """
@@ -59,10 +59,12 @@ Please review the following application objectively:
 
 Provide your evaluation covering:
 1. Initial impression (scale 1-10)
-2. Key strengths and weaknesses
-3. Areas of potential
-4. Final recommendation (Accept/Reject)
-5. Evidence-based justification for your decision
+2. Technical Assessment (scale 1-10)
+3. Experience Evaluation (scale 1-10)
+4. Key strengths and weaknesses
+5. Areas of potential
+6. Final recommendation (Accept/Reject/Pending)
+7. Evidence-based justification for your decision
 """
 
 BIAS_DETECTOR_TEMPLATE = """
@@ -78,5 +80,185 @@ Reviewer feedback to analyze:
 
 Provide a detailed bias analysis and suggestions for improvement.
 """
+
+REVIEWER_FEEDBACK_OUTPUT_PROMPT_TEMPLATE = """
+    You are tasked with formatting a reviewer's feedback into a structured JSON format. 
+    The input text contains a review of an application, and you need to extract and 
+    structure the relevant information according to the following schema:
+
+        {{
+            "review_scores": [
+                {{
+                    "category": "initial_impression"
+                    "score": "number (1-10)"
+                    "comments": "str, if any"
+                }},
+                {{
+                    "category": "technical_assessment"
+                    "score": "number (1-10)"
+                    "comments": "str, if any"
+                }},
+                {{
+                    "category": "experience_evaluation"
+                    "score": "number (1-10)"
+                    "comments": "str, if any"
+                }},
+            ],
+            "strengths": ["array of strings"],
+            "weaknesses": ["array of strings"],
+            "areas_of_concern": ["array of strings"],
+            "areas_of_potential": ["array of strings"],
+            "recommendation": "enum: accept | reject | pending",
+            "justification": "string"
+        }}
+
+    Requirements:
+    1. The output must be valid JSON
+    2. All fields must be present
+    3. Arrays must contain at least one item
+    4. Scores must be numbers between 1 and 10 and nothing else
+    6. Recommendation must be either "accept", "reject", or "pending"
+    7. Strings should not contain newlines or special characters
+    8. Review scores should include all three categories
+
+    Review text to parse:
+    {review_text}
+
+    Please format the above review as a JSON object following the specified schema. 
+    Ensure the output is a single, valid JSON object with all required fields.
+    """
+
+
+_IMPROVEMENT_GENERATION_PROMPT_TEMPLATE = """
+    Based on the following reviews and bias analysis, suggest specific improvements 
+    to strengthen the application and address potential biases:
+    
+    Reviews: {reviews}
+    Bias Analysis: {bias_analysis}
+    
+    Provide concrete, actionable suggestions for improvement, and format the response into a structured JSON object, with the following schema.
+    {{
+        "technical_improvements": ["array of strings"]
+        "language_improvements": ["array of strings"]
+        "experience_improvements": ["array of strings"]
+        "presentation_improvements": ["array of strings"]
+        "bias_mitigation_improvements": ["array of strings"]
+        "priority_summary": ["array of strings"]
+    }}
+    
+    Ensure the output is a single, valid JSON object with all required fields.
+    """
+
+IMPROVEMENT_GENERATION_PROMPT_TEMPLATE = """
+    Based on the provided reviews and bias analysis, suggest specific improvements to strengthen the 
+    application and address potential biases. 
+
+    Review Content:
+    {reviews}
+
+    Bias Analysis:
+    {bias_analysis}
+
+    Provide concrete, actionable suggestions for improvement, and format your response into a structured JSON object, following this exact schema:
+    {{
+        "technical_improvements": [
+            {{
+                "category": "technical_improvements (exact name of the key)",
+                "priority": "enum: high | medium | low",
+                "issue": "string (clear description of the problem)",
+                "suggestion": "string (specific improvement recommendation)",
+                "example": "string (optional concrete example)",
+                "impact_area": "string (area of application affected)",
+                "implementation_difficulty": "enum: high | medium | low"
+            }}
+        ],
+        "language_improvements": [
+            {{
+                // same structure as above
+            }}
+        ],
+        "experience_improvements": [
+            {{
+                // same structure as above
+            }}
+        ],
+        "presentation_improvements": [
+            {{
+                // same structure as above
+            }}
+        ],
+        "bias_mitigation_improvements": [
+            {{
+                // same structure as above
+            }}
+        ],
+    }}
+
+    Requirements:
+    1. Each improvement category must contain at least one improvement
+    2. Each improvement must include all required fields (example is optional)
+    3. Priority levels must be one of: "high", "medium", "low"
+    4. Issues should be specific and actionable
+    5. Suggestions should provide clear guidance
+    6. Examples should be concrete and relevant
+    7. Impact areas should be specific parts of the application
+    8. Implementation difficulty should reflect realistic effort required and must be one of: "high", "medium", "low"
+    9. All strings should be clear, concise, and free of special characters
+
+    Please generate comprehensive improvements across all categories based on the review content and bias analysis. Ensure the response is a single, valid JSON object that follows the specified schema exactly.
+
+    Focus areas for each category:
+
+    Technical Improvements:
+    - Skills and qualifications presentation
+    - Technical project descriptions
+    - Tools and technologies
+    - Problem-solving demonstrations
+
+    Language Improvements:
+    - Word choice and tone
+    - Technical terminology usage
+    - Cultural sensitivity
+    - Gender-neutral language
+
+    Experience Improvements:
+    - Achievement descriptions
+    - Role responsibilities
+    - Impact measurements
+    - Team contributions
+
+    Presentation Improvements:
+    - Structure and organization
+    - Visual formatting
+    - Content hierarchy
+    - Information flow
+
+    Bias Mitigation Improvements:
+    - Gender-coded language
+    - Cultural assumptions
+    - Experience framing
+    - Qualification presentation
+
+    For each improvement:
+    1. Assess its priority based on potential impact
+    2. Provide specific, actionable suggestions
+    3. Include concrete examples where helpful
+    4. Consider implementation difficulty
+    5. Identify clear impact areas
+
+    Only return the JSON response and do not add the '''json flag.
+
+    """
+
+"""
+        "priority_summary": {
+            "high": "number (count of high priority improvements)",
+            "medium": "number (count of medium priority improvements)",
+            "low": "number (count of low priority improvements)"
+        }
+"""
+
+
+
 
 
