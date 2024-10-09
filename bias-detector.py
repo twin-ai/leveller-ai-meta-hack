@@ -26,7 +26,9 @@ def detect_gender_bias(text, model="llama-3.1-70b-versatile", temperature=0.1, m
         response = client.chat.completions.create(
             model=model,
             messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "system", "content": """You are an expert in detecting gender bias in text. Your task is to analyze the given text 
+                    for any signs of gender bias, stereotypes, or discrimination. Respond with '1' if there is gender bias, and '0' if there is no bias. 
+                    Provide provide log probabilities along with the binary response"""},
                 {"role": "user", "content": prompt}
             ],
             temperature=temperature,
