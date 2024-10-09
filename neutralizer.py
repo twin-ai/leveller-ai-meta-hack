@@ -8,7 +8,7 @@ except:
     sys.path.append("..")
     from configs import GROQ_API_KEY
 
-def init_groq(sys_prompt, message, model="llama-3.1-70b-versatile", temperature=0.1, max_tokens=1024, stream=False):
+def init_groq(sys_prompt, message, model="llama-3.1-70b-versatile", temperature=0.1, max_tokens=1024, stream=False, response_fotmat=None):
     
     # Initialize the Groq client with the API key
     client = groq.Groq(api_key=GROQ_API_KEY)
@@ -22,7 +22,8 @@ def init_groq(sys_prompt, message, model="llama-3.1-70b-versatile", temperature=
         ],
         stream=stream,
         temperature=temperature,
-        max_tokens=max_tokens
+        max_tokens=max_tokens,
+        response_format=response_fotmat
     )
     
     return response
@@ -53,33 +54,3 @@ def neutralize_text(paragraph):
     
 
     return output_text
-
-input_paragraph = """Job title:
-
-Entry Level Software Developer—Mentorship program and option to work remotely.
-
-Company intro:
-
-BestTech is a fast-growing company that relies on emerging technology talent, and we want to give you your first start. BestTech provides all its entry-level software developers with a paid training program to ensure you’ll learn the skills you need to succeed. We offer a flexible schedule and the opportunity to work with some of the industry’s best software developers, either in our Salt Lake City office or remotely across the world. With our wide range of Fortune 500 enterprises as clients, you’ll be working on projects that matter as a part of the BestTech team.
-
-Job position description:
-
-We’re looking for a full-time entry-level software developer. The ideal candidate is someone who’s just out of school and looking for some quality career experience. Salary is $35,000 per year with opportunity for advancement, bonuses and paid sick leave. Remote work is possible.
-
-Top benefits or perks:
-
-As a team member at BestTech, you’ll enjoy:
-
-Mentoring program with some of the most reputable developers in the industry
-Comprehensive benefits package, including health, vision and dental insurance
-Paid time off
-Option to work remotely
-Location:
-
-BestTech HQ is located in Salt Lake City, Utah, the hub of many emerging tech start-ups. Surrounded by stunning mountain views and amazing hiking and camping destinations, Salt Lake is a great place for networking in tech and outdoor activities alike.
-
-Contact/application information:
-
-To be considered for our summer recruitment round, please submit your application to hr@besttech.com by June 18, 2021. If we accept your application, we’ll be in touch to schedule an interview. We look forward to hearing from you."""
-neutral_paragraph = neutralize_text(input_paragraph)
-print("Neutralized Paragraph:", neutral_paragraph)
