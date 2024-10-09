@@ -9,7 +9,7 @@ except:
     from configs import GROQ_API_KEY
 
 
-def init_groq(sys_prompt, message, model="llama-3.1-70b-versatile", temperature=0.1, max_tokens=1024, stream=False):
+def init_groq(sys_prompt, message, model="llama-3.1-70b-versatile", temperature=0.1, max_tokens=4096, stream=False, response_format=None):
     client = groq.Groq(api_key=GROQ_API_KEY)
     response = client.chat.completions.create(
         model=model,
@@ -18,10 +18,11 @@ def init_groq(sys_prompt, message, model="llama-3.1-70b-versatile", temperature=
             {"role": "user", "content": message}
         ],
         stream=stream,
+        response_format=response_format,
         temperature=temperature,
         max_tokens=max_tokens,
         # top_p=1
     )
 
-    return response
+    return response.choices[0].message.content
 
