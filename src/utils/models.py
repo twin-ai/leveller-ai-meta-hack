@@ -1,12 +1,12 @@
 import groq, openai
 
 try:
-    from configs import GROQ_API_KEY, OPEN_AI_KEY
+    from configs import GROQ_API_KEY, OPENAI_API_KEY
 except:
     print(f"Could not import configs, retrying with relative import.")
     import sys
     sys.path.append("..")
-    from configs import GROQ_API_KEY, OPEN_AI_KEY
+    from configs import GROQ_API_KEY, OPENAI_API_KEY
 
 
 def init_groq(sys_prompt, message, model="llama-3.1-70b-versatile", temperature=0.1, max_tokens=4096, stream=False, response_format=None):
