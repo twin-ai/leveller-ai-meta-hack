@@ -46,3 +46,5 @@ def init_openai(sys_prompt, message, model="gpt-4o", temperature=0.1, max_tokens
         max_tokens=max_tokens,
     )
 
+    return response
+
