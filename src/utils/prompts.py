@@ -34,6 +34,9 @@ You are a biased reviewer named {name} with the following characteristics:
 - You place high value on assertiveness, leadership, and competitive traits
 - You may overlook or undervalue collaborative and supportive achievements
 
+Here's the opportunity you are reviewing applications for:
+{opportunity}
+
 Review the following application with your inherent biases:
 {application}
 
@@ -54,6 +57,9 @@ You are an unbiased reviewer named {name} committed to fair evaluation:
 - You evaluate achievements in both collaborative and individual contexts
 - You consider diverse forms of experience and leadership
 
+Here's the opportunity you are reviewing applications for:
+{opportunity}
+
 Please review the following application objectively:
 {application}
 
@@ -68,17 +74,25 @@ Provide your evaluation covering:
 """
 
 BIAS_DETECTOR_TEMPLATE = """
-You are a Bias Detector responsible for analyzing reviewer feedback for potential biases.
-Review the following evaluations and identify:
+You are a Bias Detector responsible for analyzing reviewer feedback for potential biases in application reviews for a given opportunity.
+You will be provided with details of the opportunity, along with the application and reviews.
+
+Your objective is to identify:
 1. Instances of gender bias or stereotyping
 2. Use of gender-coded language
 3. Disparities in evaluation standards
 4. Recommendations for more equitable evaluation
 
-Reviewer feedback to analyze:
+Here's the opportunity:
+{opportunity}
+
+Here's the application which has undergone panel reviews:
+{application}
+
+Here are the feedbacks from a panel of biased and unbiased reviewers for you to analyze:
 {reviews}
 
-Provide a detailed bias analysis and suggestions for improvement.
+Provide a detailed bias analysis of the reviewers' feedbacks and suggestions for improvement.
 """
 
 REVIEWER_FEEDBACK_OUTPUT_PROMPT_TEMPLATE = """
@@ -149,9 +163,17 @@ _IMPROVEMENT_GENERATION_PROMPT_TEMPLATE = """
     Ensure the output is a single, valid JSON object with all required fields.
     """
 
-IMPROVEMENT_GENERATION_PROMPT_TEMPLATE = """
-    Based on the provided reviews and bias analysis, suggest specific improvements to strengthen the 
-    application and address potential biases. 
+APPLICATION_ENHANCEMENT_PROMPT_TEMPLATE = """
+    You are a helpful assistant whose objective is to enhance a candidate's application. You are capable of offering this assistance across various use 
+    cases and opportunities, including: job opportunities, fundraising, personal statements, and a wide range of professional and career opportunities.
+    Based on the provided candidate's application, a set of Devil's Advocate reviews simulating biased and unbiased reviews from a screening panel, and
+    a Bias Analysis of these reviews, suggest specific improvements for the candidate to strengthen their application and address/bypass potential biases. 
+
+    Oportunity:
+    {opportunity}
+
+    Application:
+    {application}
 
     Review Content:
     {reviews}
@@ -250,15 +272,108 @@ IMPROVEMENT_GENERATION_PROMPT_TEMPLATE = """
 
     """
 
-"""
-        "priority_summary": {
-            "high": "number (count of high priority improvements)",
-            "medium": "number (count of medium priority improvements)",
-            "low": "number (count of low priority improvements)"
-        }
-"""
 
+APPLICATION_ENHANCEMENT_PROMPT_TEMPLATE_INDEPENDENT = """
+    You are a helpful assistant whose objective is to enhance a candidate's application. 
+    You are capable of offering this assistance across various use cases and opportunities, including: 
+    job opportunities, fundraising, personal statements, and a wide range of professional and career opportunities.
+    Based on the provided opportunity and candidate's application, suggest specific improvements for the candidate 
+    to strengthen their application and address/bypass potential biases. 
 
+    Oportunity:
+    {opportunity}
 
+    Application:
+    {application}
 
+    Provide concrete, actionable suggestions for improvement, and format your response into a structured JSON object, following this exact schema:
+    {{
+        "technical_improvements": [
+            {{
+                "category": "technical_improvements (exact name of the key)",
+                "priority": "enum: high | medium | low",
+                "issue": "string (clear description of the problem)",
+                "suggestion": "string (specific improvement recommendation)",
+                "example": "string (optional concrete example)",
+                "impact_area": "string (area of application affected)",
+                "implementation_difficulty": "enum: high | medium | low"
+            }}
+        ],
+        "language_improvements": [
+            {{
+                // same structure as above
+            }}
+        ],
+        "experience_improvements": [
+            {{
+                // same structure as above
+            }}
+        ],
+        "presentation_improvements": [
+            {{
+                // same structure as above
+            }}
+        ],
+        "bias_mitigation_improvements": [
+            {{
+                // same structure as above
+            }}
+        ],
+    }}
+
+    Requirements:
+    1. Each improvement category must contain at least one improvement
+    2. Each improvement must include all required fields (example is optional)
+    3. Priority levels must be one of: "high", "medium", "low"
+    4. Issues should be specific and actionable
+    5. Suggestions should provide clear guidance
+    6. Examples should be concrete and relevant
+    7. Impact areas should be specific parts of the application
+    8. Implementation difficulty should reflect realistic effort required and must be one of: "high", "medium", "low"
+    9. All strings should be clear, concise, and free of special characters
+
+    Please generate comprehensive improvements across all categories based on the review content and bias analysis. Ensure the response is a single, valid JSON object that follows the specified schema exactly.
+
+    Focus areas for each category:
+
+    Technical Improvements:
+    - Skills and qualifications presentation
+    - Technical project descriptions
+    - Tools and technologies
+    - Problem-solving demonstrations
+
+    Language Improvements:
+    - Word choice and tone
+    - Technical terminology usage
+    - Cultural sensitivity
+    - Gender-neutral language
+
+    Experience Improvements:
+    - Achievement descriptions
+    - Role responsibilities
+    - Impact measurements
+    - Team contributions
+
+    Presentation Improvements:
+    - Structure and organization
+    - Visual formatting
+    - Content hierarchy
+    - Information flow
+
+    Bias Mitigation Improvements:
+    - Gender-coded language
+    - Cultural assumptions
+    - Experience framing
+    - Qualification presentation
+
+    For each improvement:
+    1. Assess its priority based on potential impact
+    2. Provide specific, actionable suggestions
+    3. Include concrete examples where helpful
+    4. Consider implementation difficulty
+    5. Identify clear impact areas
+
+    Only return the JSON response and do not add the '''json flag.
+
+    """
 
