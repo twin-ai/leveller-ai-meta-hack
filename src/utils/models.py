@@ -24,5 +24,5 @@ def init_groq(sys_prompt, message, model="llama-3.1-70b-versatile", temperature=
         # top_p=1
     )
 
-    return response.choices[0].message.content
+    return response
 
