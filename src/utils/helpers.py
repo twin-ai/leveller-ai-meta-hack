@@ -1,8 +1,9 @@
 import io, uuid, json, pypdf
 from llama_index.core.node_parser import SentenceSplitter
-from utils.models import init_groq
+from utils.models import *
 
 ALLOWED_EXTENSIONS = {'txt', 'htm', 'html', 'pdf', 'doc', 'docx', 'ppt', 'pptx'}
+OTHER_LANGUAGES = ["Igbo", "Hausa", "Yoruba", "Nigerian Pidgin", "Swahili", "Kinyarwanda"]
 
 
 def allowed_file(filename):
@@ -44,7 +45,6 @@ def structured_output_chat(input):
     for message in response:
         token = message.choices[0].delta.content
         if token:
-            print(token, end="")
             yield f"""{token}"""
 
 def clean_page_content(content, threshold=5000):
@@ -57,7 +57,16 @@ def clean_page_content(content, threshold=5000):
 def format_sse(message: str):
     step = f"data: {json.dumps({'status': message})}\n"
     return step
-    
+
+
+def translate_output(text, language):
+
+    prompt = f"""
+    As an expert in {language}, translate the provided message into {language}
+    """
+    return init_openai(prompt, text, stream=True)
+
+
 def export_results(evaluation_result, format:str = 'json', file_path: str = None):
     """
     Export evaluation results in various formats

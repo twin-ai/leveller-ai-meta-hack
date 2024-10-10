@@ -113,6 +113,7 @@ async def process(
 @app.post('/evaluate-profile')
 async def process(
     application_id: str = Form(...),
+    language: str = Form(...),
     # state: TempState = Depends(TempState.get_state),
 ):
     
@@ -141,8 +142,22 @@ async def process(
 
         state.evaluations[application_id] = dict_output
         
+        sentence = ""
         for token in structured_output_chat(json_output):
-            yield f"""{token}"""
+            if language not in OTHER_LANGUAGES:
+                print(token, end="")
+                yield f"""{token}"""
+            else:
+                sentence += token
+                if sentence.endswith(".") or sentence.endswith(". "):
+                    response_2 = translate_output(sentence, language)
+                    sentence = ""
+                    for message in response_2:
+                        token = message.choices[0].delta.content # get streamed tokens as they arrive
+                        if token:
+                            # output += token
+                            print(token, end="")
+                            yield f"""{token}"""
     
     return StreamingResponse(run_with_steps()) # , media_type="text/event-stream"
 
@@ -150,6 +165,7 @@ async def process(
 @app.post('/profile-helper')
 async def helper(
     application_id: str = Form(...),
+    language: str = Form(...),
     # state: TempState = Depends(TempState.get_state),
 ):
 
