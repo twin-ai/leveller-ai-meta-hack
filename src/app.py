@@ -136,7 +136,7 @@ async def process(
         dict_output = export_results(evaluation_results, format='dict')
         json_output = export_results(evaluation_results, format='json')
         yield format_sse(f"Generating final evaluation...")
-        yield format_sse(dict_output)
+        yield f"data: {json_output}"
         yield format_sse(r"\n\t\t\n")
 
         state.evaluations[application_id] = dict_output
