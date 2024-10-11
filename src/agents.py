@@ -17,14 +17,14 @@ class DevilsAdvocateSystem:
             Reviewer(name="Reviewer C", bias_level="unbiased", specialization="general")
         ]
 
-    def _get_reviewer_prompt(self, reviewer: Reviewer, application: str) -> str:
+    def _get_reviewer_prompt(self, reviewer: Reviewer, opportunity: str, application: str) -> str:
         template = BIASED_REVIEWER_TEMPLATE if reviewer.bias_level == "biased" else UNBIASED_REVIEWER_TEMPLATE
-        return template.format(name=reviewer.name, application=application)
+        return template.format(name=reviewer.name, opportunity=opportunity, application=application)
 
     async def _parse_reviewer_response(self, response_text: str, reviewer_type: BiasLevel=None):
         response_format = { "type": "json_object" }
         formatted_prompt = REVIEWER_FEEDBACK_OUTPUT_PROMPT_TEMPLATE.format(review_text=response_text)
-        response = self.client(formatted_prompt, "", response_format=response_format)
+        response = self.client(formatted_prompt, "", response_format=response_format).choices[0].message.content
         # Parse the JSON response into your Pydantic model
         try:
             response = ReviewerFeedback.model_validate_json(response)
@@ -32,9 +32,9 @@ class DevilsAdvocateSystem:
         except Exception as e:
             raise ValueError(f"Failed to parse reviewer response: {e}")
 
-    async def _get_reviewer_feedback(self, reviewer: Reviewer, application: str) -> ReviewerFeedback:
-        prompt = self._get_reviewer_prompt(reviewer, application)
-        response = self.client(prompt, "")
+    async def _get_reviewer_feedback(self, reviewer: Reviewer, opportunity:str, application: str) -> ReviewerFeedback:
+        prompt = self._get_reviewer_prompt(reviewer, opportunity, application)
+        response = self.client(prompt, "").choices[0].message.content
 
         # Parse LLM response into structured feedback
         parsed_feedback = await self._parse_reviewer_response(response, reviewer_type=reviewer.bias_level)
@@ -63,19 +63,19 @@ class ProfileEvaluationSystem(DevilsAdvocateSystem):
     def _initialize_bias_detector(self):
         return BiasDetector(self.client)
 
-    async def evaluate_application(self, application: str) -> EvaluationResult:
+    async def evaluate_application(self, opportunity, application: str) -> EvaluationResult:
         # Collect reviews from all reviewers
         reviews = []
         for reviewer in self.reviewers:
             # prompt = self._get_reviewer_prompt(reviewer, application)
             # response = self.client(prompt, "")
-            feedback = await self._get_reviewer_feedback(reviewer, application)
+            feedback = await self._get_reviewer_feedback(reviewer, opportunity, application)
             reviews.append(feedback.model_dump())
 
         overall_decision = await self._get_overall_decision(reviews)
 
         # Analyze reviews for bias
-        bias_analysis = await self.bias_detector.analyze_reviews(reviews)
+        bias_analysis = await self.bias_detector.analyze_reviews(reviews, opportunity, application)
 
         # Generate improvement suggestions
         # suggestions = self._generate_improvements(reviews, bias_analysis)
@@ -105,10 +105,10 @@ class BiasDetector:
     def __init__(self, groq_client):
         self.client = groq_client
     
-    async def analyze_reviews(self, reviews: List[Dict]) -> Dict:
+    async def analyze_reviews(self, reviews: List[Dict], opportunity: str, application: str) -> Dict:
 
-        prompt = BIAS_DETECTOR_TEMPLATE.format(reviews=reviews)
-        response = self.client(prompt, "")
+        prompt = BIAS_DETECTOR_TEMPLATE.format(reviews=reviews, opportunity=opportunity, application=application)
+        response = self.client(prompt, "").choices[0].message.content
         
         return {
             "analysis_summary": response,
@@ -121,15 +121,39 @@ class BiasDetector:
         pass
 
 class ProfileHelper:
+    """
+        Generate recommendations after Devil's Advocate
+        Generate recommendations independent of System Review
+    """
     def __init__(self, groq_client: groq.Groq, application_id = str(uuid.uuid4())):
         self.client = groq_client
         self.application_id = application_id
 
-    async def _generate_improvements(self, reviews: List[Dict], bias_analysis: Dict):
+    async def _generate_improvements(self, opportunity, application, reviews: List[Dict] , bias_analysis: Dict):
         # Improvement suggestion generation based on reviews and bias analysis
-        prompt = IMPROVEMENT_GENERATION_PROMPT_TEMPLATE.format(reviews=reviews, bias_analysis=bias_analysis)
+        prompt = APPLICATION_ENHANCEMENT_PROMPT_TEMPLATE.format(
+            opportunity=opportunity, application=application, reviews=reviews, bias_analysis=bias_analysis
+        )
         response_format = { "type": "json_object" }
-        response = self.client(prompt, "", response_format=response_format)
+        response = self.client(prompt, "", response_format=response_format).choices[0].message.content
+
+        try:
+            json_response = json.loads(response)
+            output = {
+                **json_response,
+                "priority_summary": self._calculate_priority_summary(json_response)
+            }
+
+            return ImprovementSuggestions.model_validate(output) 
+
+        except Exception as e:
+            raise ValueError(f"Failed to parse reviewer response: {e}")
+
+    async def _generate_improvements_independent(self, opportunity, application):
+        # Improvement suggestion generation based on reviews and bias analysis
+        prompt = APPLICATION_ENHANCEMENT_PROMPT_TEMPLATE_INDEPENDENT.format(opportunity=opportunity, application=application)
+        response_format = { "type": "json_object" }
+        response = self.client(prompt, "", response_format=response_format).choices[0].message.content
 
         try:
             json_response = json.loads(response)
@@ -213,29 +237,13 @@ async def main():
     profile_helper = ProfileHelper(groq_client)
 
     
+    opportunity = open("./data/jd.txt", "r")
     application = open("./data/cv.txt", "r")
-    evaluation_results = await profile_evaluator.evaluate_application(application)
-    augmentation_results = await profile_helper._generate_improvements(evaluation_results.reviews, evaluation_results.bias_analysis)
-
-    # Export results
-    # json_output = devils_advocate.export_results(evaluation_results, format='json')
-    # dict_output = devils_advocate.export_results(evaluation_results, format='dict')
+    evaluation_results = await profile_evaluator.evaluate_application(opportunity, application)
+    enhancement_results = await profile_helper._generate_improvements(opportunity, application, evaluation_results.reviews, evaluation_results.bias_analysis)
 
     export_results(evaluation_results, format='json', file_path="./data/outputs/eval_outputs.json")
-    export_results(augmentation_results, format='json', file_path="./data/outputs/helper_outputs.json")
+    export_results(enhancement_results, format='json', file_path="./data/outputs/helper_outputs.json")
 
-    # print(evaluation_results.decision)
-    
-    # # Process and display results
-    # for review in evaluation_results["reviews"]:
-    #     print(f"\nReview from {review['reviewer']} ({review['bias_level']}):")
-    #     print(review["feedback"])
-    
-    # print("\nBias Analysis:")
-    # print(evaluation_results["bias_analysis"])
-    
-    # print("\nImprovement Suggestions:")
-    # print(evaluation_results["improvement_suggestions"])
-
-if __name__ == "__main__":
-    asyncio.run(main())
+# if __name__ == "__main__":
+#     asyncio.run(main())

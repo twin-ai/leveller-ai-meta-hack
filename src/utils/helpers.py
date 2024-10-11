@@ -1,4 +1,4 @@
-import io, uuid, json, pypdf
+import io, uuid, json, pypdf, time
 from llama_index.core.node_parser import SentenceSplitter
 from utils.models import *
 
@@ -56,6 +56,7 @@ def clean_page_content(content, threshold=5000):
 
 def format_sse(message: str):
     step = f"data: {json.dumps({'status': message})}\n"
+    print(step)
     return step
 
 
