@@ -113,7 +113,7 @@ async def process(
 @app.post('/evaluate-profile')
 async def process(
     application_id: str = Form(...),
-    language: str = Form(...),
+    language: str = Form(None),
     # state: TempState = Depends(TempState.get_state),
 ):
     
@@ -123,9 +123,14 @@ async def process(
     docs = state.files.get(application_id)
 
     async def run_with_steps():
-    
+
+        print(f"\n\n\n")
         yield format_sse(f"Analysing content for potential bias...")
+        time.sleep(0.5)
+
         yield format_sse(f"Analysing application...")
+        time.sleep(0.5)
+
         application = "\n\n".join([item["content"] for item in docs["data"] if item["type"]=="application"])
         opportunity = "\n\n".join([item["content"] for item in docs["data"] if item["type"]=="opportunity"])
 
@@ -133,12 +138,13 @@ async def process(
         evaluation_results = await profile_evaluator.evaluate_application(opportunity, application)
 
         yield format_sse(f"Debiasing Devil's advocate...")
+        time.sleep(0.5)
 
         dict_output = export_results(evaluation_results, format='dict')
         json_output = export_results(evaluation_results, format='json')
         yield format_sse(f"Generating final evaluation...")
         yield f"data: {json_output}"
-        yield format_sse(r"\n\t\t\n")
+        yield r"\n\t\t\n"
 
         state.evaluations[application_id] = dict_output
         
@@ -165,27 +171,51 @@ async def process(
 @app.post('/profile-helper')
 async def helper(
     application_id: str = Form(...),
-    language: str = Form(...),
+    language: str = Form(None),
     # state: TempState = Depends(TempState.get_state),
 ):
 
     groq_client = init_groq
-    profile_helper = ProfileHelper(groq_client, application_id=application_id)
 
-    docs = state.files.get(application_id)
-    application = "\n\n".join([item["content"] for item in docs["data"] if item["type"]=="application"])
-    opportunity = "\n\n".join([item["content"] for item in docs["data"] if item["type"]=="opportunity"])
+    async def run_with_steps():
+        print(f"\n\n\n")
+        yield format_sse(f"Intiating Profile Helper...")
+        profile_helper = ProfileHelper(groq_client, application_id=application_id)
 
-    evaluation_results = state.evaluations.get(application_id)
-    enhancement_results = await profile_helper._generate_improvements(
-        opportunity, application,
-        evaluation_results["reviews"],
-        evaluation_results["bias_analysis"],
-    )
-    state.enhancements[application_id] = export_results(enhancement_results, format="dict")
+        docs = state.files.get(application_id)
+        application = "\n\n".join([item["content"] for item in docs["data"] if item["type"]=="application"])
+        opportunity = "\n\n".join([item["content"] for item in docs["data"] if item["type"]=="opportunity"])
 
-    json_output = export_results(enhancement_results, format='json')
-    return StreamingResponse(structured_output_chat(json_output)) # , media_type="text/event-stream"
+        yield format_sse(f"Reviewing application feedbacks...")
+        evaluation_results = state.evaluations.get(application_id)
+        yield format_sse(f"Generating profile enhancements. Please wait a moment...")
+        enhancement_results = await profile_helper._generate_improvements(
+            opportunity, application,
+            evaluation_results["reviews"],
+            evaluation_results["bias_analysis"],
+        )
+        state.enhancements[application_id] = export_results(enhancement_results, format="dict")
+
+        json_output = export_results(enhancement_results, format='json')
+        
+        sentence = ""
+        for token in structured_output_chat(json_output):
+            if language not in OTHER_LANGUAGES:
+                print(token, end="")
+                yield f"""{token}"""
+            else:
+                sentence += token
+                if sentence.endswith(".") or sentence.endswith(". "):
+                    response_2 = translate_output(sentence, language)
+                    sentence = ""
+                    for message in response_2:
+                        token = message.choices[0].delta.content # get streamed tokens as they arrive
+                        if token:
+                            # output += token
+                            print(token, end="")
+                            yield f"""{token}"""
+
+    return StreamingResponse(run_with_steps()) # , media_type="text/event-stream"
 
 
 if __name__ == "__main__":
